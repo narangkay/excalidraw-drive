@@ -58,10 +58,10 @@ export const GoogleDriveAuthComponent: React.FC<{
             /> :
             <GoogleLogin
                 onSuccess={credentialResponse => {
-                    console.log(credentialResponse);
+                    setToken(credentialResponse)
                 }}
                 onError={() => {
-                    console.log('Login Failed');
+                    onError(new Error("Login failed"))
                 }}
             />
     )
