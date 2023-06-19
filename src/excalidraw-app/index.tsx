@@ -5,6 +5,7 @@ import { trackEvent } from "../analytics";
 import { getDefaultAppState } from "../appState";
 import { ErrorDialog } from "../components/ErrorDialog";
 import { TopErrorBoundary } from "../components/TopErrorBoundary";
+import { GoogleApiProvider } from "react-gapi";
 import {
   APP_NAME,
   EVENT,
@@ -70,6 +71,7 @@ import {
 import CustomStats from "./CustomStats";
 import { restore, restoreAppState, RestoredDataState } from "../data/restore";
 import { ExportToGoogleDrive } from "./components/ExportToGoogleDrive";
+import { GoogleDriveAuthComponent } from "./components/GoogleDriveAuthComponent";
 import { updateStaleImageStatuses } from "./data/FileManager";
 import { newElementWith } from "../element/mutateElement";
 import { isInitializedImageElement } from "../element/typeChecks";
@@ -92,6 +94,8 @@ import { ResolutionType } from "../utility-types";
 polyfill();
 
 window.EXCALIDRAW_THROTTLE_RENDER = true;
+
+const googleAuthClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
 const languageDetector = new LanguageDetector();
 languageDetector.init({
@@ -654,14 +658,8 @@ const ExcalidrawWrapper = () => {
         autoFocus={true}
         theme={theme}
         renderTopRightUI={(isMobile) => {
-          if (isMobile || !collabAPI || isCollabDisabled) {
-            return null;
-          }
           return (
-            <LiveCollaborationTrigger
-              isCollaborating={isCollaborating}
-              onSelect={() => setCollabDialogShown(true)}
-            />
+            <GoogleDriveAuthComponent />
           );
         }}
       >
@@ -695,11 +693,13 @@ const ExcalidrawWrapper = () => {
 
 const ExcalidrawApp = () => {
   return (
-    <TopErrorBoundary>
-      <Provider unstable_createStore={() => appJotaiStore}>
-        <ExcalidrawWrapper />
-      </Provider>
-    </TopErrorBoundary>
+    <GoogleApiProvider clientId={googleAuthClientId!!}>
+      <TopErrorBoundary>
+        <Provider unstable_createStore={() => appJotaiStore}>
+          <ExcalidrawWrapper />
+        </Provider>
+      </TopErrorBoundary>
+    </GoogleApiProvider>
   );
 };
 
