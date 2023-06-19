@@ -69,7 +69,7 @@ import {
 } from "./data/localStorage";
 import CustomStats from "./CustomStats";
 import { restore, restoreAppState, RestoredDataState } from "../data/restore";
-import { ExportToExcalidrawPlus } from "./components/ExportToExcalidrawPlus";
+import { ExportToGoogleDrive } from "./components/ExportToGoogleDrive";
 import { updateStaleImageStatuses } from "./data/FileManager";
 import { newElementWith } from "../element/mutateElement";
 import { isInitializedImageElement } from "../element/typeChecks";
@@ -629,7 +629,7 @@ const ExcalidrawWrapper = () => {
               onExportToBackend,
               renderCustomUI: (elements, appState, files) => {
                 return (
-                  <ExportToExcalidrawPlus
+                  <ExportToGoogleDrive
                     elements={elements}
                     appState={appState}
                     files={files}

@@ -2,7 +2,8 @@ import React from "react";
 import { Card } from "../../components/Card";
 import { ToolButton } from "../../components/ToolButton";
 import { serializeAsJSON } from "../../data/json";
-import { loadFirebaseStorage, saveFilesToFirebase } from "../data/firebase";
+import { saveFilesToFirebase } from "../data/firebase";
+import { compressData } from "../../data/encode";
 import { FileId, NonDeletedExcalidrawElement } from "../../element/types";
 import { AppState, BinaryFileData, BinaryFiles } from "../../types";
 import { nanoid } from "nanoid";
@@ -16,37 +17,34 @@ import { MIME_TYPES } from "../../constants";
 import { trackEvent } from "../../analytics";
 import { getFrame } from "../../utils";
 
-const exportToExcalidrawPlus = async (
+const BACKEND_V2_POST = process.env.REACT_APP_BACKEND_V2_POST_URL;
+
+const exportToGoogleDrive = async (
   elements: readonly NonDeletedExcalidrawElement[],
   appState: Partial<AppState>,
   files: BinaryFiles,
 ) => {
-  const firebase = await loadFirebaseStorage();
-
-  const id = `${nanoid(12)}`;
-
   const encryptionKey = (await generateEncryptionKey())!;
-  const encryptedData = await encryptData(
-    encryptionKey,
-    serializeAsJSON(elements, appState, files, "database"),
+
+  const payload = await compressData(
+    new TextEncoder().encode(
+      serializeAsJSON(elements, appState, files, "database"),
+    ),
+    { encryptionKey },
   );
 
-  const blob = new Blob(
-    [encryptedData.iv, new Uint8Array(encryptedData.encryptedBuffer)],
-    {
-      type: MIME_TYPES.binary,
-    },
-  );
-
-  await firebase
-    .storage()
-    .ref(`/migrations/scenes/${id}`)
-    .put(blob, {
-      customMetadata: {
-        data: JSON.stringify({ version: 2, name: appState.name }),
-        created: Date.now().toString(),
-      },
-    });
+  const response = await fetch(BACKEND_V2_POST, {
+    method: "POST",
+    body: payload.buffer,
+  });
+  const json = await response.json();
+  if (!json.id) {
+    throw Error(`No id from backend ${json.error.message}`)
+  }
+  const url = new URL(window.location.href);
+  // We need to store the key (and less importantly the id) as hash instead
+  // of queryParam in order to never send it to the server
+  url.hash = `json=${json.id},${encryptionKey}`;
 
   const filesMap = new Map<FileId, BinaryFileData>();
   for (const element of elements) {
@@ -63,17 +61,15 @@ const exportToExcalidrawPlus = async (
     });
 
     await saveFilesToFirebase({
-      prefix: `/migrations/files/scenes/${id}`,
+      prefix: `/files/shareLinks/${json.id}`,
       files: filesToUpload,
     });
   }
 
-  window.open(
-    `https://plus.excalidraw.com/import?excalidraw=${id},${encryptionKey}`,
-  );
+  window.open(url.toString())
 };
 
-export const ExportToExcalidrawPlus: React.FC<{
+export const ExportToGoogleDrive: React.FC<{
   elements: readonly NonDeletedExcalidrawElement[];
   appState: Partial<AppState>;
   files: BinaryFiles;
@@ -83,24 +79,24 @@ export const ExportToExcalidrawPlus: React.FC<{
   return (
     <Card color="primary">
       <div className="Card-icon">{excalidrawPlusIcon}</div>
-      <h2>Excalidraw+</h2>
+      <h2>Google Drive</h2>
       <div className="Card-details">
-        {t("exportDialog.excalidrawplus_description")}
+        {t("exportDialog.googledrive_description")}
       </div>
       <ToolButton
         className="Card-button"
         type="button"
-        title={t("exportDialog.excalidrawplus_button")}
-        aria-label={t("exportDialog.excalidrawplus_button")}
+        title={t("exportDialog.googledrive_button")}
+        aria-label={t("exportDialog.googledrive_button")}
         showAriaLabel={true}
         onClick={async () => {
           try {
-            trackEvent("export", "eplus", `ui (${getFrame()})`);
-            await exportToExcalidrawPlus(elements, appState, files);
+            trackEvent("export", "gdrive", `ui (${getFrame()})`);
+            await exportToGoogleDrive(elements, appState, files);
           } catch (error: any) {
             console.error(error);
             if (error.name !== "AbortError") {
-              onError(new Error(t("exportDialog.excalidrawplus_exportError")));
+              onError(new Error(t("exportDialog.googledrive_exportError")));
             }
           }
         }}

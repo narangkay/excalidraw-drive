@@ -287,6 +287,9 @@
     "link_title": "Shareable link",
     "link_details": "Export as a read-only link.",
     "link_button": "Export to Link",
+    "googledrive_description": "Save the scene to your Google drive.",
+    "googledrive_button": "Export",
+    "googledrive_exportError": "Couldn't export to Google Drive at this moment...",
     "excalidrawplus_description": "Save the scene to your Excalidraw+ workspace.",
     "excalidrawplus_button": "Export",
     "excalidrawplus_exportError": "Couldn't export to Excalidraw+ at this moment..."
