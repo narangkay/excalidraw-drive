@@ -657,9 +657,19 @@ const ExcalidrawWrapper = () => {
         onLibraryChange={onLibraryChange}
         autoFocus={true}
         theme={theme}
-        renderTopRightUI={(isMobile) => {
+        renderTopRightUI={(isMobile, appState) => {
           return (
-            <GoogleDriveAuthComponent />
+            <GoogleDriveAuthComponent
+              excalidrawAPI={excalidrawAPI || undefined}
+              appState={appState}
+              onError={(error) => {
+                excalidrawAPI?.updateScene({
+                  appState: {
+                    errorMessage: error.message,
+                  },
+                });
+              }}
+            />
           );
         }}
       >
