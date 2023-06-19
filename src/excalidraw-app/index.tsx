@@ -86,6 +86,7 @@ import { AppFooter } from "./components/AppFooter";
 import { atom, Provider, useAtom, useAtomValue } from "jotai";
 import { useAtomWithInitialValue } from "../jotai";
 import { appJotaiStore } from "./app-jotai";
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 import "./index.scss";
 import { ResolutionType } from "../utility-types";
@@ -692,11 +693,13 @@ const ExcalidrawWrapper = () => {
 
 const ExcalidrawApp = () => {
   return (
-    <TopErrorBoundary>
-      <Provider unstable_createStore={() => appJotaiStore}>
-        <ExcalidrawWrapper />
-      </Provider>
-    </TopErrorBoundary>
+    <GoogleOAuthProvider clientId={googleAuthClientId}>
+      <TopErrorBoundary>
+        <Provider unstable_createStore={() => appJotaiStore}>
+          <ExcalidrawWrapper />
+        </Provider>
+      </TopErrorBoundary>
+    </GoogleOAuthProvider>
   );
 };
 
