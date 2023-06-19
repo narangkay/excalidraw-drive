@@ -5,7 +5,6 @@ import { trackEvent } from "../analytics";
 import { getDefaultAppState } from "../appState";
 import { ErrorDialog } from "../components/ErrorDialog";
 import { TopErrorBoundary } from "../components/TopErrorBoundary";
-import { GoogleApiProvider } from "react-gapi";
 import {
   APP_NAME,
   EVENT,
@@ -224,11 +223,11 @@ const initializeScene = async (opts: {
   } else if (scene) {
     return isExternalScene && jsonBackendMatch
       ? {
-          scene,
-          isExternalScene,
-          id: jsonBackendMatch[1],
-          key: jsonBackendMatch[2],
-        }
+        scene,
+        isExternalScene,
+        id: jsonBackendMatch[1],
+        key: jsonBackendMatch[2],
+      }
       : { scene, isExternalScene: false };
   }
   return { scene: null, isExternalScene: false };
@@ -693,13 +692,11 @@ const ExcalidrawWrapper = () => {
 
 const ExcalidrawApp = () => {
   return (
-    <GoogleApiProvider clientId={googleAuthClientId!!}>
-      <TopErrorBoundary>
-        <Provider unstable_createStore={() => appJotaiStore}>
-          <ExcalidrawWrapper />
-        </Provider>
-      </TopErrorBoundary>
-    </GoogleApiProvider>
+    <TopErrorBoundary>
+      <Provider unstable_createStore={() => appJotaiStore}>
+        <ExcalidrawWrapper />
+      </Provider>
+    </TopErrorBoundary>
   );
 };
 

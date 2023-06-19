@@ -7638,7 +7638,6 @@ __metadata:
     pwacompat: 2.0.17
     react: 18.2.0
     react-dom: 18.2.0
-    react-gapi: 1.0.2
     react-scripts: 5.0.1
     rewire: 6.0.0
     roughjs: 4.5.2
@@ -13033,17 +13032,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-gapi@npm:1.0.2":
-  version: 1.0.2
-  resolution: "react-gapi@npm:1.0.2"
-  dependencies:
-    react-weblibrary: ^1.0.1
-  peerDependencies:
-    react: ">=16.8"
-  checksum: cb450466b18fe6c73ecd49c2afd93f299ea53c754b5b4dfeef884a7de4cf286a99066a56f44dcb6b584fca648815d345df639b63cdad687026f96a3b306b94a1
-  languageName: node
-  linkType: hard
-
 "react-is@npm:^16.13.1":
   version: 16.13.1
   resolution: "react-is@npm:16.13.1"
@@ -13188,17 +13176,6 @@ __metadata:
     "@types/react":
       optional: true
   checksum: 7ee8ef3aab74c7ae1d70ff34a27643d11ba1a8d62d072c767827d9ff9a520905223e567002e0bf6c772929d8ea1c781a3ba0cc4a563e92b1e3dc2eaa817ecbe8
-  languageName: node
-  linkType: hard
-
-"react-weblibrary@npm:^1.0.1":
-  version: 1.0.4
-  resolution: "react-weblibrary@npm:1.0.4"
-  dependencies:
-    ts-essentials: ^9.1.2
-  peerDependencies:
-    react: ">=17"
-  checksum: b1d6c83613ef6296f162d0f439eae9cc53f2bc5394443badc89a8d2fbcee70cb1785a110c7cec4f5fb0edda1199dad97633eb114fa3f9b35ef3333daa8b5e49e
   languageName: node
   linkType: hard
 
@@ -14874,15 +14851,6 @@ __metadata:
   version: 1.0.1
   resolution: "tryer@npm:1.0.1"
   checksum: 1cf14d7f67c79613f054b569bfc9a89c7020d331573a812dfcf7437244e8f8e6eb6893b210cbd9cc217f67c1d72617f89793df231e4fe7d53634ed91cf3a89d1
-  languageName: node
-  linkType: hard
-
-"ts-essentials@npm:^9.1.2":
-  version: 9.3.2
-  resolution: "ts-essentials@npm:9.3.2"
-  peerDependencies:
-    typescript: ">=4.1.0"
-  checksum: 88726b3f9bdc8f59f9a998bb925c989268d7e2f24d29ac13545e457d3ac8ee5472c78990eaa415b4c58244d55b989985a999345d6845055f5a58bb0f098c6f44
   languageName: node
   linkType: hard
 
