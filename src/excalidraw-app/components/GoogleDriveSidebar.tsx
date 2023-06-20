@@ -1,5 +1,6 @@
 import {
   Sidebar,
+  restore,
   serializeAsJSON,
   useI18n,
 } from "../../packages/excalidraw/index";
@@ -8,12 +9,12 @@ import { atom, useAtom } from "jotai";
 import { appJotaiStore } from "../app-jotai";
 import { ToolButton } from "../../components/ToolButton";
 import { hasGrantedAllScopesGoogle, TokenResponse } from "@react-oauth/google";
-import { AppState, BinaryFiles, ExcalidrawImperativeAPI } from "../../types";
-import { NonDeletedExcalidrawElement } from "../../element/types";
+import { ExcalidrawImperativeAPI } from "../../types";
 import { useEffect, useState } from "react";
 import Spinner from "../../components/Spinner";
 import { TextField } from "../../components/TextField";
 import { KEYS } from "../../keys";
+import { ImportedDataState } from "../../data/types";
 
 const tokenResponseAtom = atom<TokenResponse | undefined>(undefined);
 
@@ -24,10 +25,8 @@ export type SidebarType = "import" | "export";
 
 type DriveAction = (
   fileId: string,
-  elements: readonly NonDeletedExcalidrawElement[],
-  appState: Partial<AppState>,
-  files: BinaryFiles,
   tokenResponse: TokenResponse,
+  excalidrawAPI?: ExcalidrawImperativeAPI,
 ) => Promise<void>;
 
 type DriveFile = {
@@ -60,7 +59,7 @@ const fetchFromDrive: (
     });
   }
   return fetch(url, {
-    method: method,
+    method,
     headers: new Headers({
       "content-type": "text/plain",
       Authorization: `Bearer ${tokenResponse?.access_token}`,
@@ -71,12 +70,15 @@ const fetchFromDrive: (
 
 const exportToGoogleDrive: DriveAction = async (
   fileId: string,
-  elements: readonly NonDeletedExcalidrawElement[],
-  appState: Partial<AppState>,
-  files: BinaryFiles,
   tokenResponse: TokenResponse,
+  excalidrawAPI?: ExcalidrawImperativeAPI,
 ) => {
-  const payload = serializeAsJSON(elements, appState, files, "local");
+  const payload = serializeAsJSON(
+    excalidrawAPI?.getSceneElements()!!,
+    excalidrawAPI?.getAppState()!!,
+    excalidrawAPI?.getFiles()!!,
+    "local",
+  );
   return fetchFromDrive(
     "PATCH",
     `https://www.googleapis.com/upload/drive/v3/files/${fileId}`,
@@ -87,12 +89,27 @@ const exportToGoogleDrive: DriveAction = async (
 
 const importFrtomGoogleDrive: DriveAction = async (
   fileId: string,
-  elements: readonly NonDeletedExcalidrawElement[],
-  appState: Partial<AppState>,
-  files: BinaryFiles,
   tokenResponse: TokenResponse,
+  excalidrawAPI?: ExcalidrawImperativeAPI,
 ) => {
-  return Promise.all([]).then((_) => {});
+  return fetchFromDrive(
+    "GET",
+    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+    tokenResponse,
+  )
+    .then((json) => {
+      console.log(json);
+      const importedDataState = json as ImportedDataState;
+      return restore(
+        {
+          elements: importedDataState.elements,
+          appState: importedDataState.appState,
+        },
+        excalidrawAPI?.getAppState(),
+        excalidrawAPI?.getSceneElements(),
+      );
+    })
+    .then((scene) => excalidrawAPI?.updateScene(scene));
 };
 
 export const SIDEBAR_CONFIG: Record<
@@ -190,7 +207,8 @@ export const GoogleDriveSidebar: React.FC<{
   return (
     <Sidebar name={config.name}>
       <Sidebar.Header>
-        {config.actionTitle}{loading && <Spinner />}
+        {config.actionTitle}
+        {loading && <Spinner />}
       </Sidebar.Header>
       {tokenResponse && (
         <TextField
@@ -220,13 +238,7 @@ export const GoogleDriveSidebar: React.FC<{
               setLoading(true);
               try {
                 config
-                  .act(
-                    df.id,
-                    excalidrawAPI?.getSceneElements()!!,
-                    excalidrawAPI?.getAppState()!!,
-                    excalidrawAPI?.getFiles()!!,
-                    tokenResponse,
-                  )
+                  .act(df.id, tokenResponse, excalidrawAPI)
                   .then((_) => setLoading(false));
               } catch (error: any) {
                 console.error(error);
