@@ -24,7 +24,6 @@ import { t } from "../i18n";
 import {
   Excalidraw,
   defaultLang,
-  LiveCollaborationTrigger,
 } from "../packages/excalidraw/index";
 import {
   AppState,
@@ -71,6 +70,7 @@ import CustomStats from "./CustomStats";
 import { restore, restoreAppState, RestoredDataState } from "../data/restore";
 import { ExportToGoogleDrive } from "./components/ExportToGoogleDrive";
 import { GoogleDriveAuthComponent } from "./components/GoogleDriveAuthComponent";
+import { GoogleDriveSidebar } from "./components/GoogleDriveSidebar";
 import { updateStaleImageStatuses } from "./data/FileManager";
 import { newElementWith } from "../element/mutateElement";
 import { isInitializedImageElement } from "../element/typeChecks";
@@ -661,14 +661,6 @@ const ExcalidrawWrapper = () => {
           return (
             <GoogleDriveAuthComponent
               excalidrawAPI={excalidrawAPI || undefined}
-              appState={appState}
-              onError={(error) => {
-                excalidrawAPI?.updateScene({
-                  appState: {
-                    errorMessage: error.message,
-                  },
-                });
-              }}
             />
           );
         }}
@@ -678,6 +670,15 @@ const ExcalidrawWrapper = () => {
           isCollaborating={isCollaborating}
           isCollabEnabled={!isCollabDisabled}
         />
+        <GoogleDriveSidebar
+          excalidrawAPI={excalidrawAPI || undefined}
+          onError={(error: Error) => {
+            excalidrawAPI?.updateScene({
+              appState: {
+                errorMessage: error.message,
+              },
+            });
+          }} />
         <AppWelcomeScreen
           setCollabDialogShown={setCollabDialogShown}
           isCollabEnabled={!isCollabDisabled}
