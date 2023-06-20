@@ -1,21 +1,25 @@
 import { ToolButton } from "../../components/ToolButton";
 import { useI18n } from "../../i18n";
 import { ExcalidrawImperativeAPI } from "../../types";
-import { DRIVE_SIDEBAR_NAME } from "./GoogleDriveSidebar";
+import { SIDEBAR_CONFIG, SidebarType } from "./GoogleDriveSidebar";
 
 export const GoogleDriveAuthComponent: React.FC<{
   excalidrawAPI?: ExcalidrawImperativeAPI;
-}> = ({ excalidrawAPI }) => {
+  sidebarType: SidebarType;
+}> = ({ excalidrawAPI, sidebarType }) => {
   const { t } = useI18n();
+  const config = SIDEBAR_CONFIG[sidebarType];
   return (
     <ToolButton
       className="Card-button"
       type="button"
-      title={t("exportDialog.googledrive_button")}
-      aria-label={t("exportDialog.googledrive_button")}
+      title={t(config.buttonLabel)}
+      aria-label={t(config.buttonLabel)}
       showAriaLabel={true}
       onClick={() => {
-        excalidrawAPI?.toggleSidebar({ name: DRIVE_SIDEBAR_NAME });
+        excalidrawAPI?.toggleSidebar({
+          name: config.name,
+        });
       }}
     />
   );

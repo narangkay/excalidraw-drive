@@ -21,10 +21,7 @@ import {
 } from "../element/types";
 import { useCallbackRefState } from "../hooks/useCallbackRefState";
 import { t } from "../i18n";
-import {
-  Excalidraw,
-  defaultLang,
-} from "../packages/excalidraw/index";
+import { Excalidraw, defaultLang } from "../packages/excalidraw/index";
 import {
   AppState,
   LibraryItems,
@@ -86,10 +83,11 @@ import { AppFooter } from "./components/AppFooter";
 import { atom, Provider, useAtom, useAtomValue } from "jotai";
 import { useAtomWithInitialValue } from "../jotai";
 import { appJotaiStore } from "./app-jotai";
-import { GoogleOAuthProvider } from '@react-oauth/google';
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 import "./index.scss";
 import { ResolutionType } from "../utility-types";
+import { SidebarType } from "./components/GoogleDriveSidebar";
 
 polyfill();
 
@@ -224,11 +222,11 @@ const initializeScene = async (opts: {
   } else if (scene) {
     return isExternalScene && jsonBackendMatch
       ? {
-        scene,
-        isExternalScene,
-        id: jsonBackendMatch[1],
-        key: jsonBackendMatch[2],
-      }
+          scene,
+          isExternalScene,
+          id: jsonBackendMatch[1],
+          key: jsonBackendMatch[2],
+        }
       : { scene, isExternalScene: false };
   }
   return { scene: null, isExternalScene: false };
@@ -659,9 +657,16 @@ const ExcalidrawWrapper = () => {
         theme={theme}
         renderTopRightUI={(isMobile, appState) => {
           return (
-            <GoogleDriveAuthComponent
-              excalidrawAPI={excalidrawAPI || undefined}
-            />
+            <div>
+              <GoogleDriveAuthComponent
+                excalidrawAPI={excalidrawAPI || undefined}
+                sidebarType="import"
+              />
+              <GoogleDriveAuthComponent
+                excalidrawAPI={excalidrawAPI || undefined}
+                sidebarType="export"
+              />
+            </div>
           );
         }}
       >
@@ -678,7 +683,20 @@ const ExcalidrawWrapper = () => {
                 errorMessage: error.message,
               },
             });
-          }} />
+          }}
+          sidebarType={"import" as SidebarType}
+        />
+        <GoogleDriveSidebar
+          excalidrawAPI={excalidrawAPI || undefined}
+          onError={(error: Error) => {
+            excalidrawAPI?.updateScene({
+              appState: {
+                errorMessage: error.message,
+              },
+            });
+          }}
+          sidebarType={"export" as SidebarType}
+        />
         <AppWelcomeScreen
           setCollabDialogShown={setCollabDialogShown}
           isCollabEnabled={!isCollabDisabled}

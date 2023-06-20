@@ -13,9 +13,20 @@ import { NonDeletedExcalidrawElement } from "../../element/types";
 import { useEffect, useState } from "react";
 import Spinner from "../../components/Spinner";
 
-export const tokenResponseAtom = atom<TokenResponse | null>(null);
+const tokenResponseAtom = atom<TokenResponse | null>(null);
 
-export const DRIVE_SIDEBAR_NAME = "drive-loader-sidebar";
+const DRIVE_EXPORT_SIDEBAR_NAME = "drive-export-sidebar";
+const DRIVE_IMPORT_SIDEBAR_NAME = "drive-import-sidebar";
+
+export type SidebarType = "import" | "export";
+
+type DriveAction = (
+  fileId: string,
+  elements: readonly NonDeletedExcalidrawElement[],
+  appState: Partial<AppState>,
+  files: BinaryFiles,
+  token: string,
+) => Promise<void>;
 
 type DriveFile = {
   kind: "drive#file";
@@ -24,7 +35,7 @@ type DriveFile = {
   name: string;
 };
 
-const exportToGoogleDrive = (
+const exportToGoogleDrive: DriveAction = (
   fileId: string,
   elements: readonly NonDeletedExcalidrawElement[],
   appState: Partial<AppState>,
@@ -44,10 +55,44 @@ const exportToGoogleDrive = (
     .then((updateJson) => console.log(updateJson));
 };
 
+const importFrtomGoogleDrive: DriveAction = (
+  fileId: string,
+  elements: readonly NonDeletedExcalidrawElement[],
+  appState: Partial<AppState>,
+  files: BinaryFiles,
+  token: string,
+) => {
+  return Promise.all([]).then((_) => {});
+};
+
+export const SIDEBAR_CONFIG: Record<
+  SidebarType,
+  {
+    name: string;
+    action: string;
+    buttonLabel: string;
+    act: DriveAction;
+  }
+> = {
+  export: {
+    name: DRIVE_EXPORT_SIDEBAR_NAME,
+    action: "Export",
+    buttonLabel: "exportDialog.googledrive_button",
+    act: exportToGoogleDrive,
+  },
+  import: {
+    name: DRIVE_IMPORT_SIDEBAR_NAME,
+    action: "Import",
+    buttonLabel: "importDialog.googledrive_button",
+    act: importFrtomGoogleDrive,
+  },
+};
+
 export const GoogleDriveSidebar: React.FC<{
   excalidrawAPI?: ExcalidrawImperativeAPI;
+  sidebarType: SidebarType;
   onError: (error: Error) => void;
-}> = ({ excalidrawAPI, onError }) => {
+}> = ({ excalidrawAPI, sidebarType, onError }) => {
   const [tokenResponse] = useAtom(tokenResponseAtom);
   const [driveFiles, setDriveFiles] = useState<DriveFile[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -92,10 +137,11 @@ export const GoogleDriveSidebar: React.FC<{
   }, [tokenResponse, onError]);
 
   const { t } = useI18n();
+  const config = SIDEBAR_CONFIG[sidebarType];
   return (
-    <Sidebar name={DRIVE_SIDEBAR_NAME}>
+    <Sidebar name={config.name}>
       <Sidebar.Header>
-        Export To Google Drive {loading && <Spinner />}
+        {config.action} To Google Drive{loading && <Spinner />}
       </Sidebar.Header>
       {tokenResponse ? (
         driveFiles.map((df) => (
@@ -109,13 +155,15 @@ export const GoogleDriveSidebar: React.FC<{
             onClick={() => {
               setLoading(true);
               try {
-                exportToGoogleDrive(
-                  df.id,
-                  excalidrawAPI?.getSceneElements()!!,
-                  excalidrawAPI?.getAppState()!!,
-                  excalidrawAPI?.getFiles()!!,
-                  tokenResponse.access_token,
-                ).then((_) => setLoading(false));
+                config
+                  .act(
+                    df.id,
+                    excalidrawAPI?.getSceneElements()!!,
+                    excalidrawAPI?.getAppState()!!,
+                    excalidrawAPI?.getFiles()!!,
+                    tokenResponse.access_token,
+                  )
+                  .then((_) => setLoading(false));
               } catch (error: any) {
                 console.error(error);
                 onError(new Error(t("exportDialog.googledrive_exportError")));

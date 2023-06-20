@@ -280,6 +280,9 @@
   "errorDialog": {
     "title": "Error"
   },
+  "importDialog": {
+    "googledrive_button": "Import"
+  },
   "exportDialog": {
     "disk_title": "Save to disk",
     "disk_details": "Export the scene data to a file from which you can import later.",
