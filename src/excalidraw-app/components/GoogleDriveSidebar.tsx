@@ -12,8 +12,10 @@ import { AppState, BinaryFiles, ExcalidrawImperativeAPI } from "../../types";
 import { NonDeletedExcalidrawElement } from "../../element/types";
 import { useEffect, useState } from "react";
 import Spinner from "../../components/Spinner";
+import { TextField } from "../../components/TextField";
+import { KEYS } from "../../keys";
 
-const tokenResponseAtom = atom<TokenResponse | null>(null);
+const tokenResponseAtom = atom<TokenResponse | undefined>(undefined);
 
 const DRIVE_EXPORT_SIDEBAR_NAME = "drive-export-sidebar";
 const DRIVE_IMPORT_SIDEBAR_NAME = "drive-import-sidebar";
@@ -25,7 +27,7 @@ type DriveAction = (
   elements: readonly NonDeletedExcalidrawElement[],
   appState: Partial<AppState>,
   files: BinaryFiles,
-  token: string,
+  tokenResponse: TokenResponse,
 ) => Promise<void>;
 
 type DriveFile = {
@@ -35,32 +37,60 @@ type DriveFile = {
   name: string;
 };
 
-const exportToGoogleDrive: DriveAction = (
-  fileId: string,
-  elements: readonly NonDeletedExcalidrawElement[],
-  appState: Partial<AppState>,
-  files: BinaryFiles,
-  token: string,
-) => {
-  const payload = serializeAsJSON(elements, appState, files, "local");
-  return fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}`, {
-    method: "PATCH",
+const fetchFromDrive: (
+  method: "GET" | "POST" | "PATCH",
+  url: string,
+  tokenResponse?: TokenResponse,
+  payload?: string,
+) => Promise<any> = async (method, url, tokenResponse, payload) => {
+  if (!tokenResponse) {
+    return new Promise((resolve, reject) => {
+      reject(new Error("not logged in"));
+    });
+  }
+  if (
+    !hasGrantedAllScopesGoogle(
+      tokenResponse,
+      "https://www.googleapis.com/auth/drive.file",
+      "https://www.googleapis.com/auth/drive.install",
+    )
+  ) {
+    return new Promise((resolve, reject) => {
+      reject(new Error("missing scopes."));
+    });
+  }
+  return fetch(url, {
+    method: method,
     headers: new Headers({
       "content-type": "text/plain",
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${tokenResponse?.access_token}`,
     }),
     body: payload,
-  })
-    .then((updateResponse) => updateResponse.json())
-    .then((updateJson) => console.log(updateJson));
+  }).then((response) => response.json());
 };
 
-const importFrtomGoogleDrive: DriveAction = (
+const exportToGoogleDrive: DriveAction = async (
   fileId: string,
   elements: readonly NonDeletedExcalidrawElement[],
   appState: Partial<AppState>,
   files: BinaryFiles,
-  token: string,
+  tokenResponse: TokenResponse,
+) => {
+  const payload = serializeAsJSON(elements, appState, files, "local");
+  return fetchFromDrive(
+    "PATCH",
+    `https://www.googleapis.com/upload/drive/v3/files/${fileId}`,
+    tokenResponse,
+    payload,
+  );
+};
+
+const importFrtomGoogleDrive: DriveAction = async (
+  fileId: string,
+  elements: readonly NonDeletedExcalidrawElement[],
+  appState: Partial<AppState>,
+  files: BinaryFiles,
+  tokenResponse: TokenResponse,
 ) => {
   return Promise.all([]).then((_) => {});
 };
@@ -69,20 +99,20 @@ export const SIDEBAR_CONFIG: Record<
   SidebarType,
   {
     name: string;
-    action: string;
+    actionTitle: string;
     buttonLabel: string;
     act: DriveAction;
   }
 > = {
   export: {
     name: DRIVE_EXPORT_SIDEBAR_NAME,
-    action: "Export",
+    actionTitle: "Export to Google Drive",
     buttonLabel: "exportDialog.googledrive_button",
     act: exportToGoogleDrive,
   },
   import: {
     name: DRIVE_IMPORT_SIDEBAR_NAME,
-    action: "Import",
+    actionTitle: "Import from Google Drive",
     buttonLabel: "importDialog.googledrive_button",
     act: importFrtomGoogleDrive,
   },
@@ -96,6 +126,7 @@ export const GoogleDriveSidebar: React.FC<{
   const [tokenResponse] = useAtom(tokenResponseAtom);
   const [driveFiles, setDriveFiles] = useState<DriveFile[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [newFileName, setNewFileName] = useState<string>("");
 
   const login = useGoogleLogin({
     onSuccess: (tokenResponse) => {
@@ -111,29 +142,47 @@ export const GoogleDriveSidebar: React.FC<{
       "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.install",
   });
 
-  useEffect(() => {
-    if (!tokenResponse) {
-      return;
-    }
-    if (
-      !hasGrantedAllScopesGoogle(
-        tokenResponse,
-        "https://www.googleapis.com/auth/drive.file",
-        "https://www.googleapis.com/auth/drive.install",
+  const refreshFileList = async () => {
+    setLoading(true);
+    fetchFromDrive(
+      "GET",
+      "https://www.googleapis.com/drive/v3/files",
+      tokenResponse,
+    )
+      .then(
+        (listJson) => (listJson as { files: DriveFile[] }).files,
+        (error) => {
+          onError(error);
+          return [];
+        },
       )
-    ) {
-      return onError(new Error("missing scopes."));
-    }
-    fetch("https://www.googleapis.com/drive/v3/files", {
-      method: "GET",
-      headers: new Headers({
-        "content-type": "text/plain",
-        Authorization: `Bearer ${tokenResponse?.access_token}`,
+      .then((files) => {
+        console.log(files);
+        return files;
+      })
+      .then((files) => setDriveFiles(files))
+      .then((_) => setLoading(false));
+  };
+
+  const createFileInDrive = async () => {
+    setLoading(true);
+    fetchFromDrive(
+      "POST",
+      "https://www.googleapis.com/drive/v3/files",
+      tokenResponse,
+      JSON.stringify({
+        mimeType: "text/plain",
+        name: `${newFileName}.excalidraw`,
+        description: "Auto created by excalidraw drive",
       }),
-    })
-      .then((listResponse) => listResponse.json())
-      .then((listJson) => (listJson as { files: DriveFile[] }).files)
-      .then((files) => setDriveFiles(files));
+    ).then((json) => {
+      setNewFileName("");
+      return refreshFileList();
+    });
+  };
+
+  useEffect(() => {
+    refreshFileList();
   }, [tokenResponse, onError]);
 
   const { t } = useI18n();
@@ -141,8 +190,23 @@ export const GoogleDriveSidebar: React.FC<{
   return (
     <Sidebar name={config.name}>
       <Sidebar.Header>
-        {config.action} To Google Drive{loading && <Spinner />}
+        {config.actionTitle}{loading && <Spinner />}
       </Sidebar.Header>
+      {tokenResponse && (
+        <TextField
+          value={newFileName}
+          onChange={setNewFileName}
+          label="New file name input"
+          fullWidth={false}
+          placeholder="New file name here..."
+          readonly={false}
+          onKeyDown={(event) =>
+            event.key === KEYS.ENTER &&
+            newFileName.trim().length > 0 &&
+            createFileInDrive()
+          }
+        />
+      )}
       {tokenResponse ? (
         driveFiles.map((df) => (
           <ToolButton
@@ -161,7 +225,7 @@ export const GoogleDriveSidebar: React.FC<{
                     excalidrawAPI?.getSceneElements()!!,
                     excalidrawAPI?.getAppState()!!,
                     excalidrawAPI?.getFiles()!!,
-                    tokenResponse.access_token,
+                    tokenResponse,
                   )
                   .then((_) => setLoading(false));
               } catch (error: any) {
