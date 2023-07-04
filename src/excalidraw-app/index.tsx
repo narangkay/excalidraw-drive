@@ -116,6 +116,20 @@ const shareableLinkConfirmDialog = {
   color: "danger",
 } as const;
 
+const privacyPolicyConfirmDialog = {
+  title: "Privacy policy",
+  description: `Excalidraw Drive doesn't collect any user data. It uses Google Drive API to authorize user and get access to documents selected by user, restricted only to those created by the user through the app.
+  None of the documents leave the browser.
+
+  Excalidraw.app is browser-only web app and doesn't have any remote data storage (e.g. database).
+  
+  Excalidraw.app's use of information received from Google APIs will adhere to the Google API Services User Data Policy, including the Limited Use requirements.
+  
+  If you have any questions about this Privacy Policy, You can contact me by email: kanarang@gmail.com`,
+  actionLabel: "Understood",
+  color: "warning",
+} as const;
+
 const initializeScene = async (opts: {
   collabAPI: CollabAPI | null;
   excalidrawAPI: ExcalidrawImperativeAPI;
@@ -126,6 +140,13 @@ const initializeScene = async (opts: {
   )
 > => {
   const searchParams = new URLSearchParams(window.location.search);
+
+  const privacyPolicy = searchParams.get("privacy-policy");
+
+  if (privacyPolicy && privacyPolicy === "true") {
+    await openConfirmModal(privacyPolicyConfirmDialog);
+  }
+
   const id = searchParams.get("id");
   const jsonBackendMatch = window.location.hash.match(
     /^#json=([a-zA-Z0-9_-]+),([a-zA-Z0-9_-]+)$/,
