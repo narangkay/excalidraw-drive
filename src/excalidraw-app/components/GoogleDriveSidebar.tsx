@@ -199,7 +199,9 @@ export const GoogleDriveSidebar: React.FC<{
   };
 
   useEffect(() => {
-    refreshFileList();
+    if (tokenResponse) {
+      refreshFileList();
+    }
   }, [tokenResponse, onError]);
 
   const { t } = useI18n();
