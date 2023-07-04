@@ -88,6 +88,9 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import "./index.scss";
 import { ResolutionType } from "../utility-types";
 import { SidebarType } from "./components/GoogleDriveSidebar";
+import { ShareableLinkDialog } from "../components/ShareableLinkDialog";
+import { openConfirmModal } from "../components/OverwriteConfirm/OverwriteConfirmState";
+import Trans from "../components/Trans";
 
 polyfill();
 
@@ -99,6 +102,19 @@ const languageDetector = new LanguageDetector();
 languageDetector.init({
   languageUtils: {},
 });
+
+const shareableLinkConfirmDialog = {
+  title: t("overwriteConfirm.modal.shareableLink.title"),
+  description: (
+    <Trans
+      i18nKey="overwriteConfirm.modal.shareableLink.description"
+      bold={(text) => <strong>{text}</strong>}
+      br={() => <br />}
+    />
+  ),
+  actionLabel: t("overwriteConfirm.modal.shareableLink.button"),
+  color: "danger",
+} as const;
 
 const initializeScene = async (opts: {
   collabAPI: CollabAPI | null;
@@ -131,7 +147,7 @@ const initializeScene = async (opts: {
       // don't prompt for collab scenes because we don't override local storage
       roomLinkData ||
       // otherwise, prompt whether user wants to override current scene
-      window.confirm(t("alerts.loadSceneOverridePrompt"))
+      (await openConfirmModal(shareableLinkConfirmDialog))
     ) {
       if (jsonBackendMatch) {
         scene = await loadScene(
@@ -170,7 +186,7 @@ const initializeScene = async (opts: {
       const data = await loadFromBlob(await request.blob(), null, null);
       if (
         !scene.elements.length ||
-        window.confirm(t("alerts.loadSceneOverridePrompt"))
+        (await openConfirmModal(shareableLinkConfirmDialog))
       ) {
         return { scene: data, isExternalScene };
       }
@@ -556,6 +572,10 @@ const ExcalidrawWrapper = () => {
     }
   };
 
+  const [latestShareableLink, setLatestShareableLink] = useState<string | null>(
+    null,
+  );
+
   const onExportToBackend = async (
     exportedElements: readonly NonDeletedExcalidrawElement[],
     appState: Partial<AppState>,
@@ -567,7 +587,7 @@ const ExcalidrawWrapper = () => {
     }
     if (canvas) {
       try {
-        await exportToBackend(
+        const { url, errorMessage } = await exportToBackend(
           exportedElements,
           {
             ...appState,
@@ -577,6 +597,14 @@ const ExcalidrawWrapper = () => {
           },
           files,
         );
+
+        if (errorMessage) {
+          setErrorMessage(errorMessage);
+        }
+
+        if (url) {
+          setLatestShareableLink(url);
+        }
       } catch (error: any) {
         if (error.name !== "AbortError") {
           const { width, height } = canvas;
@@ -707,15 +735,22 @@ const ExcalidrawWrapper = () => {
             {t("alerts.collabOfflineWarning")}
           </div>
         )}
+        {latestShareableLink && (
+          <ShareableLinkDialog
+            link={latestShareableLink}
+            onCloseRequest={() => setLatestShareableLink(null)}
+            setErrorMessage={setErrorMessage}
+          />
+        )}
         {excalidrawAPI && !isCollabDisabled && (
           <Collab excalidrawAPI={excalidrawAPI} />
         )}
+        {errorMessage && (
+          <ErrorDialog onClose={() => setErrorMessage("")}>
+            {errorMessage}
+          </ErrorDialog>
+        )}
       </Excalidraw>
-      {errorMessage && (
-        <ErrorDialog onClose={() => setErrorMessage("")}>
-          {errorMessage}
-        </ErrorDialog>
-      )}
     </div>
   );
 };
