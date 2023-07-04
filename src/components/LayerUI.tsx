@@ -6,6 +6,7 @@ import { isTextElement, showSelectedShapeActions } from "../element";
 import { NonDeletedExcalidrawElement } from "../element/types";
 import { Language, t } from "../i18n";
 import { calculateScrollCenter } from "../scene";
+import { PrivacyPolicyDialog } from "../excalidraw-app/components/PrivacyPolicyDialog";
 import {
   AppProps,
   AppState,
@@ -107,6 +108,10 @@ const DefaultOverwriteConfirmDialog = () => {
       <OverwriteConfirmDialog.Actions.ExportToImage />
     </OverwriteConfirmDialog>
   );
+};
+
+const DefaultPrivacyPolicyDialog = () => {
+  return <PrivacyPolicyDialog __fallback></PrivacyPolicyDialog>;
 };
 
 const LayerUI = ({
@@ -354,6 +359,7 @@ const LayerUI = ({
         {t("toolBar.library")}
       </DefaultSidebar.Trigger>
       <DefaultOverwriteConfirmDialog />
+      <DefaultPrivacyPolicyDialog />
       {/* ------------------------------------------------------------------ */}
 
       {appState.isLoading && <LoadingMessage delay={250} />}
