@@ -98,7 +98,6 @@ const importFrtomGoogleDrive: DriveAction = async (
     tokenResponse,
   )
     .then((json) => {
-      console.log(json);
       const importedDataState = json as ImportedDataState;
       return restore(
         {
@@ -174,7 +173,6 @@ export const GoogleDriveSidebar: React.FC<{
         },
       )
       .then((files) => {
-        console.log(files);
         return files;
       })
       .then((files) => setDriveFiles(files))
@@ -182,8 +180,7 @@ export const GoogleDriveSidebar: React.FC<{
   };
 
   const createFileInDrive = async () => {
-    setLoading(true);
-    fetchFromDrive(
+    return fetchFromDrive(
       "POST",
       "https://www.googleapis.com/drive/v3/files",
       tokenResponse,
@@ -192,10 +189,19 @@ export const GoogleDriveSidebar: React.FC<{
         name: `${newFileName}.excalidraw`,
         description: "Auto created by excalidraw drive",
       }),
-    ).then((json) => {
-      setNewFileName("");
-      return refreshFileList();
-    });
+    )
+      .then((json) =>
+        fetchFromDrive(
+          "PATCH",
+          `https://www.googleapis.com/upload/drive/v3/files/${json.id}`,
+          tokenResponse,
+          "{}",
+        ),
+      )
+      .then((json) => {
+        setNewFileName("");
+        return json;
+      });
   };
 
   useEffect(() => {
@@ -220,11 +226,19 @@ export const GoogleDriveSidebar: React.FC<{
           fullWidth={false}
           placeholder="New file name here..."
           readonly={false}
-          onKeyDown={(event) =>
-            event.key === KEYS.ENTER &&
-            newFileName.trim().length > 0 &&
-            createFileInDrive()
-          }
+          onKeyDown={(event) => {
+            if (event.key === KEYS.ENTER && newFileName.trim().length > 0) {
+              setLoading(true);
+              createFileInDrive()
+                .then((json) => {
+                  return Promise.all([
+                    config.act(json.id, tokenResponse, excalidrawAPI),
+                    refreshFileList(),
+                  ]);
+                })
+                .then(() => setLoading(false));
+            }
+          }}
         />
       )}
       {tokenResponse ? (
