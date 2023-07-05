@@ -10,13 +10,16 @@ import { appJotaiStore } from "../app-jotai";
 import { ToolButton } from "../../components/ToolButton";
 import { hasGrantedAllScopesGoogle, TokenResponse } from "@react-oauth/google";
 import { ExcalidrawImperativeAPI } from "../../types";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Spinner from "../../components/Spinner";
 import { TextField } from "../../components/TextField";
 import { KEYS } from "../../keys";
 import { ImportedDataState } from "../../data/types";
 
 const tokenResponseAtom = atom<TokenResponse | undefined>(undefined);
+const driveFilesAtom = atom<DriveFile[]>([]);
+const loadingAtom = atom<boolean>(false);
+const newFileNameAtom = atom<string>("");
 
 const DRIVE_EXPORT_SIDEBAR_NAME = "drive-export-sidebar";
 const DRIVE_IMPORT_SIDEBAR_NAME = "drive-import-sidebar";
@@ -140,9 +143,9 @@ export const GoogleDriveSidebar: React.FC<{
   onError: (error: Error) => void;
 }> = ({ excalidrawAPI, sidebarType, onError }) => {
   const [tokenResponse] = useAtom(tokenResponseAtom);
-  const [driveFiles, setDriveFiles] = useState<DriveFile[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [newFileName, setNewFileName] = useState<string>("");
+  const [driveFiles, setDriveFiles] = useAtom(driveFilesAtom);
+  const [loading, setLoading] = useAtom(loadingAtom);
+  const [newFileName, setNewFileName] = useAtom(newFileNameAtom);
 
   const login = useGoogleLogin({
     onSuccess: (tokenResponse) => {
@@ -173,6 +176,7 @@ export const GoogleDriveSidebar: React.FC<{
         },
       )
       .then((files) => {
+        console.log(files);
         return files;
       })
       .then((files) => setDriveFiles(files))
