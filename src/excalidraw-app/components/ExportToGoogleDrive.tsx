@@ -8,7 +8,7 @@ import { FileId, NonDeletedExcalidrawElement } from "../../element/types";
 import { AppState, BinaryFileData, BinaryFiles } from "../../types";
 import { useI18n } from "../../i18n";
 import { excalidrawPlusIcon } from "./icons";
-import {  generateEncryptionKey } from "../../data/encryption";
+import { generateEncryptionKey } from "../../data/encryption";
 import { isInitializedImageElement } from "../../element/typeChecks";
 import { FILE_UPLOAD_MAX_BYTES } from "../app_constants";
 import { encodeFilesForUpload } from "../data/FileManager";
@@ -37,7 +37,7 @@ const exportToGoogleDrive = async (
   });
   const json = await response.json();
   if (!json.id) {
-    throw Error(`No id from backend ${json.error.message}`)
+    throw Error(`No id from backend ${json.error.message}`);
   }
   const url = new URL(window.location.href);
   // We need to store the key (and less importantly the id) as hash instead
@@ -64,7 +64,7 @@ const exportToGoogleDrive = async (
     });
   }
 
-  window.open(url.toString())
+  window.open(url.toString());
 };
 
 export const ExportToGoogleDrive: React.FC<{
