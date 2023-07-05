@@ -4,72 +4,33 @@ import {
   serializeAsJSON,
   useI18n,
 } from "../../packages/excalidraw/index";
-import { useGoogleLogin } from "@react-oauth/google";
 import { atom, useAtom } from "jotai";
-import { appJotaiStore } from "../app-jotai";
 import { ToolButton } from "../../components/ToolButton";
-import { hasGrantedAllScopesGoogle, TokenResponse } from "@react-oauth/google";
+import { TokenResponse } from "@react-oauth/google";
 import { ExcalidrawImperativeAPI } from "../../types";
-import { useEffect } from "react";
 import Spinner from "../../components/Spinner";
 import { TextField } from "../../components/TextField";
 import { KEYS } from "../../keys";
 import { ImportedDataState } from "../../data/types";
+import {
+  DriveAction,
+  loadingAtom,
+  fetchFromDrive,
+  driveFilesAtom,
+  freshFetchFilesFromDrive,
+  createFileInDrive,
+} from "../data/GoogleDriveState";
+import {
+  GoogleDriveLoginButton,
+  tokenResponseReadAtom,
+} from "./GoogleDriveLoginButton";
 
-const tokenResponseAtom = atom<TokenResponse | undefined>(undefined);
-const driveFilesAtom = atom<DriveFile[]>([]);
-const loadingAtom = atom<boolean>(false);
 const newFileNameAtom = atom<string>("");
 
 const DRIVE_EXPORT_SIDEBAR_NAME = "drive-export-sidebar";
 const DRIVE_IMPORT_SIDEBAR_NAME = "drive-import-sidebar";
 
 export type SidebarType = "import" | "export";
-
-type DriveAction = (
-  fileId: string,
-  tokenResponse: TokenResponse,
-  excalidrawAPI?: ExcalidrawImperativeAPI,
-) => Promise<void>;
-
-type DriveFile = {
-  kind: "drive#file";
-  mimeType: "text/plain" | "application/octet-stream";
-  id: string;
-  name: string;
-};
-
-const fetchFromDrive: (
-  method: "GET" | "POST" | "PATCH",
-  url: string,
-  tokenResponse?: TokenResponse,
-  payload?: string,
-) => Promise<any> = async (method, url, tokenResponse, payload) => {
-  if (!tokenResponse) {
-    return new Promise((resolve, reject) => {
-      reject(new Error("not logged in"));
-    });
-  }
-  if (
-    !hasGrantedAllScopesGoogle(
-      tokenResponse,
-      "https://www.googleapis.com/auth/drive.file",
-      "https://www.googleapis.com/auth/drive.install",
-    )
-  ) {
-    return new Promise((resolve, reject) => {
-      reject(new Error("missing scopes."));
-    });
-  }
-  return fetch(url, {
-    method,
-    headers: new Headers({
-      "content-type": "text/plain",
-      Authorization: `Bearer ${tokenResponse?.access_token}`,
-    }),
-    body: payload,
-  }).then((response) => response.json());
-};
 
 const exportToGoogleDrive: DriveAction = async (
   fileId: string,
@@ -142,77 +103,10 @@ export const GoogleDriveSidebar: React.FC<{
   sidebarType: SidebarType;
   onError: (error: Error) => void;
 }> = ({ excalidrawAPI, sidebarType, onError }) => {
-  const [tokenResponse] = useAtom(tokenResponseAtom);
+  const [tokenResponse] = useAtom(tokenResponseReadAtom);
   const [driveFiles, setDriveFiles] = useAtom(driveFilesAtom);
   const [loading, setLoading] = useAtom(loadingAtom);
   const [newFileName, setNewFileName] = useAtom(newFileNameAtom);
-
-  const login = useGoogleLogin({
-    onSuccess: (tokenResponse) => {
-      appJotaiStore.set(tokenResponseAtom, tokenResponse);
-      setLoading(false);
-    },
-    onError: (error) => {
-      onError(new Error(error.error_description));
-      setLoading(false);
-    },
-    flow: "implicit",
-    scope:
-      "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.install",
-  });
-
-  const refreshFileList = async () => {
-    setLoading(true);
-    fetchFromDrive(
-      "GET",
-      "https://www.googleapis.com/drive/v3/files",
-      tokenResponse,
-    )
-      .then(
-        (listJson) => (listJson as { files: DriveFile[] }).files,
-        (error) => {
-          onError(error);
-          return [];
-        },
-      )
-      .then((files) => {
-        console.log(files);
-        return files;
-      })
-      .then((files) => setDriveFiles(files))
-      .then((_) => setLoading(false));
-  };
-
-  const createFileInDrive = async () => {
-    return fetchFromDrive(
-      "POST",
-      "https://www.googleapis.com/drive/v3/files",
-      tokenResponse,
-      JSON.stringify({
-        mimeType: "text/plain",
-        name: `${newFileName}.excalidraw`,
-        description: "Auto created by excalidraw drive",
-      }),
-    )
-      .then((json) =>
-        fetchFromDrive(
-          "PATCH",
-          `https://www.googleapis.com/upload/drive/v3/files/${json.id}`,
-          tokenResponse,
-          "{}",
-        ),
-      )
-      .then((json) => {
-        setNewFileName("");
-        return json;
-      });
-  };
-
-  useEffect(() => {
-    if (tokenResponse) {
-      refreshFileList();
-    }
-  }, [tokenResponse, onError]);
 
   const { t } = useI18n();
   const config = SIDEBAR_CONFIG[sidebarType];
@@ -233,11 +127,17 @@ export const GoogleDriveSidebar: React.FC<{
           onKeyDown={(event) => {
             if (event.key === KEYS.ENTER && newFileName.trim().length > 0) {
               setLoading(true);
-              createFileInDrive()
+              createFileInDrive(tokenResponse, newFileName)
+                .then((json) => {
+                  setNewFileName("");
+                  return json;
+                })
                 .then((json) => {
                   return Promise.all([
                     config.act(json.id, tokenResponse, excalidrawAPI),
-                    refreshFileList(),
+                    freshFetchFilesFromDrive(tokenResponse).then((files) =>
+                      setDriveFiles(files),
+                    ),
                   ]);
                 })
                 .then(() => setLoading(false));
@@ -269,17 +169,7 @@ export const GoogleDriveSidebar: React.FC<{
           />
         ))
       ) : (
-        <ToolButton
-          className="Card-button"
-          type="button"
-          title="Log In"
-          aria-label="Log In"
-          showAriaLabel={true}
-          onClick={() => {
-            setLoading(true);
-            login();
-          }}
-        />
+        <GoogleDriveLoginButton onError={onError} />
       )}
     </Sidebar>
   );

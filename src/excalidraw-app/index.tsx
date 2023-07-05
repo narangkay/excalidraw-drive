@@ -693,16 +693,9 @@ const ExcalidrawWrapper = () => {
         theme={theme}
         renderTopRightUI={(isMobile, appState) => {
           return (
-            <div>
-              <GoogleDriveAuthComponent
-                excalidrawAPI={excalidrawAPI || undefined}
-                sidebarType="import"
-              />
-              <GoogleDriveAuthComponent
-                excalidrawAPI={excalidrawAPI || undefined}
-                sidebarType="export"
-              />
-            </div>
+            <GoogleDriveAuthComponent
+              excalidrawAPI={excalidrawAPI || undefined}
+            />
           );
         }}
       >
