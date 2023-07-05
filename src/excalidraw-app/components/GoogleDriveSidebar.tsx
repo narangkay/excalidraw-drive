@@ -1,9 +1,4 @@
-import {
-  Sidebar,
-  restore,
-  serializeAsJSON,
-  useI18n,
-} from "../../packages/excalidraw/index";
+import { Sidebar, restore, useI18n } from "../../packages/excalidraw/index";
 import { atom, useAtom } from "jotai";
 import { ToolButton } from "../../components/ToolButton";
 import { TokenResponse } from "@react-oauth/google";
@@ -13,12 +8,12 @@ import { TextField } from "../../components/TextField";
 import { KEYS } from "../../keys";
 import { ImportedDataState } from "../../data/types";
 import {
-  DriveAction,
   loadingAtom,
   fetchFromDrive,
   driveFilesAtom,
   freshFetchFilesFromDrive,
   createFileInDrive,
+  selectedFileAtom,
 } from "../data/GoogleDriveState";
 import {
   GoogleDriveLoginButton,
@@ -27,31 +22,11 @@ import {
 
 const newFileNameAtom = atom<string>("");
 
-const DRIVE_EXPORT_SIDEBAR_NAME = "drive-export-sidebar";
-const DRIVE_IMPORT_SIDEBAR_NAME = "drive-import-sidebar";
+export const DRIVE_SIDEBAR_NAME = "drive-sidebar";
+export const DRIVE_SODEBAR_ACTION_TITLE = "Open File";
+export const DRIVE_SIDEBAR_BUTTON_LABEL = "importDialog.googledrive_button";
 
-export type SidebarType = "import" | "export";
-
-const exportToGoogleDrive: DriveAction = async (
-  fileId: string,
-  tokenResponse: TokenResponse,
-  excalidrawAPI?: ExcalidrawImperativeAPI,
-) => {
-  const payload = serializeAsJSON(
-    excalidrawAPI?.getSceneElements()!!,
-    excalidrawAPI?.getAppState()!!,
-    excalidrawAPI?.getFiles()!!,
-    "local",
-  );
-  return fetchFromDrive(
-    "PATCH",
-    `https://www.googleapis.com/upload/drive/v3/files/${fileId}`,
-    tokenResponse,
-    payload,
-  );
-};
-
-const importFrtomGoogleDrive: DriveAction = async (
+const importFrtomGoogleDrive = async (
   fileId: string,
   tokenResponse: TokenResponse,
   excalidrawAPI?: ExcalidrawImperativeAPI,
@@ -75,45 +50,21 @@ const importFrtomGoogleDrive: DriveAction = async (
     .then((scene) => excalidrawAPI?.updateScene(scene));
 };
 
-export const SIDEBAR_CONFIG: Record<
-  SidebarType,
-  {
-    name: string;
-    actionTitle: string;
-    buttonLabel: string;
-    act: DriveAction;
-  }
-> = {
-  export: {
-    name: DRIVE_EXPORT_SIDEBAR_NAME,
-    actionTitle: "Export to Google Drive",
-    buttonLabel: "exportDialog.googledrive_button",
-    act: exportToGoogleDrive,
-  },
-  import: {
-    name: DRIVE_IMPORT_SIDEBAR_NAME,
-    actionTitle: "Import from Google Drive",
-    buttonLabel: "importDialog.googledrive_button",
-    act: importFrtomGoogleDrive,
-  },
-};
-
 export const GoogleDriveSidebar: React.FC<{
   excalidrawAPI?: ExcalidrawImperativeAPI;
-  sidebarType: SidebarType;
   onError: (error: Error) => void;
-}> = ({ excalidrawAPI, sidebarType, onError }) => {
+}> = ({ excalidrawAPI, onError }) => {
   const [tokenResponse] = useAtom(tokenResponseReadAtom);
   const [driveFiles, setDriveFiles] = useAtom(driveFilesAtom);
   const [loading, setLoading] = useAtom(loadingAtom);
   const [newFileName, setNewFileName] = useAtom(newFileNameAtom);
+  const [, setSelectedFile] = useAtom(selectedFileAtom);
 
   const { t } = useI18n();
-  const config = SIDEBAR_CONFIG[sidebarType];
   return (
-    <Sidebar name={config.name}>
+    <Sidebar name={DRIVE_SIDEBAR_NAME}>
       <Sidebar.Header>
-        {config.actionTitle}
+        {DRIVE_SODEBAR_ACTION_TITLE}
         {loading && <Spinner />}
       </Sidebar.Header>
       {tokenResponse && (
@@ -134,13 +85,25 @@ export const GoogleDriveSidebar: React.FC<{
                 })
                 .then((json) => {
                   return Promise.all([
-                    config.act(json.id, tokenResponse, excalidrawAPI),
-                    freshFetchFilesFromDrive(tokenResponse).then((files) =>
-                      setDriveFiles(files),
+                    importFrtomGoogleDrive(
+                      json.id,
+                      tokenResponse,
+                      excalidrawAPI,
                     ),
+                    freshFetchFilesFromDrive(tokenResponse).then((files) => {
+                      setDriveFiles(files);
+                      setSelectedFile(
+                        files.find((file) => file.id === json.id),
+                      );
+                    }),
                   ]);
                 })
-                .then(() => setLoading(false));
+                .then(() => {
+                  setLoading(false);
+                  return excalidrawAPI?.toggleSidebar({
+                    name: DRIVE_SIDEBAR_NAME,
+                  });
+                });
             }
           }}
         />
@@ -157,9 +120,17 @@ export const GoogleDriveSidebar: React.FC<{
             onClick={() => {
               setLoading(true);
               try {
-                config
-                  .act(df.id, tokenResponse, excalidrawAPI)
-                  .then((_) => setLoading(false));
+                importFrtomGoogleDrive(
+                  df.id,
+                  tokenResponse,
+                  excalidrawAPI,
+                ).then((_) => {
+                  setLoading(false);
+                  setSelectedFile(df);
+                  return excalidrawAPI?.toggleSidebar({
+                    name: DRIVE_SIDEBAR_NAME,
+                  });
+                });
               } catch (error: any) {
                 console.error(error);
                 onError(new Error(t("exportDialog.googledrive_exportError")));

@@ -281,7 +281,7 @@
     "title": "Error"
   },
   "importDialog": {
-    "googledrive_button": "Import"
+    "googledrive_button": "Open File"
   },
   "exportDialog": {
     "disk_title": "Save to disk",

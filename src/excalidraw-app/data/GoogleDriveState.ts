@@ -1,13 +1,6 @@
 import { TokenResponse, hasGrantedAllScopesGoogle } from "@react-oauth/google";
-import { ExcalidrawImperativeAPI } from "../../types";
 import { atom } from "jotai";
 import { tokenResponseReadAtom } from "../components/GoogleDriveLoginButton";
-
-export type DriveAction = (
-  fileId: string,
-  tokenResponse: TokenResponse,
-  excalidrawAPI?: ExcalidrawImperativeAPI,
-) => Promise<void>;
 
 export type DriveFile = {
   kind: "drive#file";
@@ -39,6 +32,8 @@ export const driveFilesAtom = atom(
 );
 
 export const loadingAtom = atom<boolean>(false);
+
+export const selectedFileAtom = atom<DriveFile | undefined>(undefined);
 
 export const freshFetchFilesFromDrive = (tokenResponse: TokenResponse) => {
   return fetchFromDrive(

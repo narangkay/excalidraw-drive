@@ -88,7 +88,6 @@ import { openPrivacyModal } from "./components/PrivacyPolicyDialog";
 
 import "./index.scss";
 import { ResolutionType } from "../utility-types";
-import { SidebarType } from "./components/GoogleDriveSidebar";
 import { ShareableLinkDialog } from "../components/ShareableLinkDialog";
 import { openConfirmModal } from "../components/OverwriteConfirm/OverwriteConfirmState";
 import Trans from "../components/Trans";
@@ -695,6 +694,13 @@ const ExcalidrawWrapper = () => {
           return (
             <GoogleDriveAuthComponent
               excalidrawAPI={excalidrawAPI || undefined}
+              onError={(error: Error) => {
+                excalidrawAPI?.updateScene({
+                  appState: {
+                    errorMessage: error.message,
+                  },
+                });
+              }}
             />
           );
         }}
@@ -713,18 +719,6 @@ const ExcalidrawWrapper = () => {
               },
             });
           }}
-          sidebarType={"import" as SidebarType}
-        />
-        <GoogleDriveSidebar
-          excalidrawAPI={excalidrawAPI || undefined}
-          onError={(error: Error) => {
-            excalidrawAPI?.updateScene({
-              appState: {
-                errorMessage: error.message,
-              },
-            });
-          }}
-          sidebarType={"export" as SidebarType}
         />
         <AppWelcomeScreen
           setCollabDialogShown={setCollabDialogShown}
