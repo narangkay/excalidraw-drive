@@ -6,14 +6,12 @@ import { saveFilesToFirebase } from "../data/firebase";
 import { compressData } from "../../data/encode";
 import { FileId, NonDeletedExcalidrawElement } from "../../element/types";
 import { AppState, BinaryFileData, BinaryFiles } from "../../types";
-import { nanoid } from "nanoid";
 import { useI18n } from "../../i18n";
 import { excalidrawPlusIcon } from "./icons";
-import { encryptData, generateEncryptionKey } from "../../data/encryption";
+import {  generateEncryptionKey } from "../../data/encryption";
 import { isInitializedImageElement } from "../../element/typeChecks";
 import { FILE_UPLOAD_MAX_BYTES } from "../app_constants";
 import { encodeFilesForUpload } from "../data/FileManager";
-import { MIME_TYPES } from "../../constants";
 import { trackEvent } from "../../analytics";
 import { getFrame } from "../../utils";
 
