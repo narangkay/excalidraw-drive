@@ -3522,13 +3522,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-core@npm:^4.29.19":
-  version: 4.29.19
-  resolution: "@tanstack/query-core@npm:4.29.19"
-  checksum: 91a79dbebebc139d118542a5fe83fb54a6f6448bbe1563db1a0bed0c6d44e1d023613efde3c4ac747c72d067110013ac56f90611bf8affc390eda1ac3f99066e
-  languageName: node
-  linkType: hard
-
 "@testing-library/dom@npm:^8.0.0":
   version: 8.20.1
   resolution: "@testing-library/dom@npm:8.20.1"
@@ -7545,7 +7538,6 @@ __metadata:
     "@react-oauth/google": latest
     "@sentry/browser": 6.2.5
     "@sentry/integrations": 6.2.5
-    "@tanstack/query-core": ^4.29.19
     "@testing-library/jest-dom": 5.16.2
     "@testing-library/react": 12.1.5
     "@tldraw/vec": 1.7.1
@@ -7575,7 +7567,6 @@ __metadata:
     image-blob-reduce: 3.0.1
     jest-canvas-mock: 2.4.0
     jotai: 1.13.1
-    jotai-tanstack-query: ^0.7.1
     lint-staged: 12.3.7
     lodash.throttle: 4.1.1
     nanoid: 3.3.3
@@ -9981,16 +9972,6 @@ __metadata:
   bin:
     jiti: bin/jiti.js
   checksum: 46c41cd82d01c6efdee3fc0ae9b3e86ed37457192d6366f19157d863d64961b07982ab04e9d5879576a1af99cc4d132b0b73b336094f86a5ce9fb1029ec2d29f
-  languageName: node
-  linkType: hard
-
-"jotai-tanstack-query@npm:^0.7.1":
-  version: 0.7.1
-  resolution: "jotai-tanstack-query@npm:0.7.1"
-  peerDependencies:
-    "@tanstack/query-core": "*"
-    jotai: ">=1.11.0"
-  checksum: a6d88985bdd2383b346aaa537489ec6362d0c0207dce5c7352ab762a1d8571a0cdefbfa7ebe163a2823d6b91e00f7a9cf7ceb735d37277674f344ed064e3c146
   languageName: node
   linkType: hard
 
