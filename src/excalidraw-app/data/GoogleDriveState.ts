@@ -2,7 +2,6 @@ import { TokenResponse, hasGrantedAllScopesGoogle } from "@react-oauth/google";
 import { ExcalidrawImperativeAPI } from "../../types";
 import { atom } from "jotai";
 import { tokenResponseReadAtom } from "../components/GoogleDriveLoginButton";
-import { jotaiStore } from "../../jotai";
 
 export type DriveAction = (
   fileId: string,
